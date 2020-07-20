@@ -3,6 +3,7 @@
 require "bundler/setup"
 Bundler.require
 require 'pp'
+require 'json'
 
 
 $connection_pool = {}
@@ -15,15 +16,23 @@ App = lambda do |env|
     ws.on :open do |event|
       p "connect!"
       $connection_pool[@id] = ws
-      p $connection_pool.length
+      p @id
       p "send log"
       $log.each do |ms|
+        print JSON.parse(ms)["strokeType"].to_s + ","
         ws.send(ms)
       end
+      puts ""
     end
 
     ws.on :message do |event|
-      $log << event.data
+      msg = JSON.parse(event.data)
+      p msg["strokeType"] 
+      if msg["strokeType"] == 1 then
+        $log = []
+      else
+        $log << event.data
+      end
       $connection_pool.each do |k,wss|
         wss.send(event.data)
       end
