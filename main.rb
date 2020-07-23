@@ -11,8 +11,6 @@ class Faye::WebSocket
   attr_accessor :user_id
 end
 
-$connection_pool = {}
-$log = []
 
 gm = GameMaster.new()
 
@@ -25,10 +23,10 @@ App = lambda do |env|
       p "generate new id: #{id}"
       # set id
       ws.user_id = id  
-      $connection_pool[id] = ws
+      gm.add_connection(id, ws)
       print "send log: "
-      $log.each do |ms|
-        print JSON.parse(ms)["strokeType"].to_s + ","
+      gm.log.each do |ms|
+        print JSON.parse(ms)["actionType"].to_s + ","
         ws.send(ms)
       end
       puts ""
@@ -37,13 +35,13 @@ App = lambda do |env|
     ws.on :message do |event|
       p "recieved from #{ws.user_id}"
       msg = JSON.parse(event.data)
-      p "message type: #{msg["strokeType"]}" 
-      if msg["strokeType"] == 1 then
-        $log = []
+      p "message type: #{msg["actionType"]}" 
+      if msg["actionType"] == 1 then
+        gm.clear_log
       else
-        $log << event.data
+        gm.record_log event.data
       end
-      $connection_pool.each do |k,wss|
+      gm.connection_pool.each do |k,wss|
         wss.send(event.data)
       end
     end
@@ -51,7 +49,7 @@ App = lambda do |env|
     ws.on :close do |event|
       #p [:close, event.code, event.reason]
       p "disconnect #{ws.user_id}"
-      $connection_pool.delete(ws.user_id)
+      gm.connection_pool.delete(ws.user_id)
       ws = nil
     end
 
@@ -72,9 +70,5 @@ App = lambda do |env|
     [200, { 'Content-Type' => 'text/plain' }, ['Hello']]
   end
 end
-
-
-
-
 
 
