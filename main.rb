@@ -19,17 +19,13 @@ App = lambda do |env|
     ws = Faye::WebSocket.new(env, nil, {ping: 15})
     ws.on :open do |event|
       p "connect!"
-      id = SecureRandom.hex(8)
-      p "generate new id: #{id}"
+      new_user_id = SecureRandom.hex(8)
+      p "generate new id: #{new_user_id}"
       # set id
-      ws.user_id = id  
-      gm.add_connection(id, ws)
-      print "send log: "
-      gm.log.each do |ms|
-        print JSON.parse(ms)["actionType"].to_s + ","
-        ws.send(ms)
-      end
-      puts ""
+      ws.user_id = new_user_id  
+      gm.add_connection(new_user_id, ws)
+      p "send log: "
+      gm.send_log(new_user_id)
     end
 
     ws.on :message do |event|
@@ -39,11 +35,10 @@ App = lambda do |env|
       if msg["actionType"] == 1 then
         gm.clear_log
       else
+        p msg["color"]
         gm.record_log event.data
       end
-      gm.connection_pool.each do |k,wss|
-        wss.send(event.data)
-      end
+      gm.broadcast_message(msg)
     end
 
     ws.on :close do |event|

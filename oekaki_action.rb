@@ -11,7 +11,7 @@ end
 
 
 class OekakiAction 
-  attr_accessor :type, :line, :color, :message
+  attr_accessor :type, :line, :line_width, :color, :message
   def initialize(type)
     @type = type
   end
