@@ -8,7 +8,7 @@ require 'securerandom'
 require "./game_master"
 
 class Faye::WebSocket
-  attr_accessor :user_id
+  attr_accessor :user_id, :user_name
 end
 
 
@@ -32,7 +32,8 @@ App = lambda do |env|
       p "recieved from #{ws.user_id}"
       msg = JSON.parse(event.data)
       p "message type: #{msg["actionType"]}" 
-      if msg["actionType"] == 1 then
+      ##TODO こここの処理を後々game_master側に移す
+      if msg["actionType"] == ActionType::CLEAR then
         gm.clear_log
       else
         p msg["color"]
@@ -56,8 +57,21 @@ App = lambda do |env|
     p env["REQUEST_PATH"]
     path = env["REQUEST_PATH"]
     case path
-    when /\/master\/.*/ 
+    when /\/master\/clear/ 
       p "master call"
+      p path
+      act = OekakiAction.new(ActionType::CLEAR)
+      puts act.to_msg
+      gm.broadcast_message(act.to_msg)
+    when /\/master\/call\/(.*)/ 
+      p "master call"
+      p path
+      act = OekakiAction.new(ActionType::ANNOUNCE)
+      act.message = "#{$1}"
+      puts act.to_msg
+      gm.broadcast_message(act.to_msg)
+    when /\/master\/start/
+      gm.run()
     else
       p "else path: (#{path})"
     end
