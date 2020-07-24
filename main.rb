@@ -38,8 +38,8 @@ App = lambda do |env|
       else
         p msg["color"]
         gm.record_log event.data
+        gm.broadcast_message(msg)
       end
-      gm.broadcast_message(msg)
     end
 
     ws.on :close do |event|
@@ -71,7 +71,7 @@ App = lambda do |env|
       puts act.to_msg
       gm.broadcast_message(act.to_msg)
     when /\/master\/start/
-      gm.run()
+      gm.game_start()
     else
       p "else path: (#{path})"
     end

@@ -24,6 +24,8 @@ class GameMaster
   end
   def clear_log()
     @paint_log = []
+    act = OekakiAction.new(ActionType::CLEAR)
+    self.broadcast_message(act.to_msg)
   end
   def broadcast_message(msg)
     @connection_pool.each do |k, ws|
@@ -36,7 +38,16 @@ class GameMaster
       ws.send(JSON.dump(msg))
     end
   end
-  def run()
+  def send_action(user_id,act)
+    ws = @connection_pool[user_id]
+    ws.send(JSON.dump(act.to_msg))
+  end
+  def announce_to_user(user_id, str) 
+    act = OekakiAction.new(ActionType::ANNOUNCE)
+    act.message = str
+    self.send_action(user_id,act)
+  end
+  def game_start()
     Thread.new do
       Thread.pass
       p "new thread start!!!"
@@ -45,9 +56,12 @@ class GameMaster
       act = OekakiAction.new(ActionType::ANNOUNCE)
       act.message = "ゲームが始まるよ！！！"
       self.broadcast_message(act.to_msg)
-      sleep(3)
-      act.message = "1 2 3 4"
-      self.broadcast_message(act.to_msg)
+      drawer = @connection_pool.keys.sample
+      other = @connection_pool.keys - [drawer]
+      self.announce_to_user(drawer,"あなたは描き手です！")
+      other.each do |user_id|
+        self.announce_to_user(user_id,"あなたは回答者です！")
+      end
     end
   end 
 end
