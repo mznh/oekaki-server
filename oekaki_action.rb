@@ -8,29 +8,50 @@ module ActionType
   REDO = 3
   OPERATION = 4
   ANNOUNCE = 5
+  CHAT = 6
 end
 
 
 class OekakiAction 
   attr_accessor :type, :line, :line_width, :color, :message
   def initialize(type)
-    @type = type
-    @line = []
-    @line_width = 1
-    @color = {:red => 0, :green => 0, :blue => 0}
-    @message = ""
+      @type = type
+      @line = []
+      @line_width = 1
+      @color = {:red => 0, :green => 0, :blue => 0}
+      @message = ""
+  end
+  def self.newFromJSON(json)
+    act = OekakiAction.new(json["actionType"])
+    act.line =  json["line"]
+    act.line_width = json["lineWidth"]
+    act.color = json["color"]
+    act.message = json["message"]
+    return act
   end
   def to_msg
     tmp = {
       "actionType" => @type,
       "line" => @line,
-      "lineWidht" => @line_width,
+      "lineWidth" => @line_width,
       "color" => @color,
       "message" => @message
     }
-    return tmp
+    return JSON.dump(tmp)
   end
   def to_json
     return self.to_msg.to_json
+  end
+end
+
+
+class OekakiProblem
+  attr_accessor :problem, :answer_list
+  def initialize(prob,ans_list)
+    @problem = prob
+    @answer_list = ans_list
+  end
+  def check_answer(challenge)
+    return @answer_list.include? challenge
   end
 end

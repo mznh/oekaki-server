@@ -30,15 +30,26 @@ App = lambda do |env|
 
     ws.on :message do |event|
       p "recieved from #{ws.user_id}"
-      msg = JSON.parse(event.data)
-      p "message type: #{msg["actionType"]}" 
+      json = JSON.parse(event.data)
+      action = OekakiAction.newFromJSON(json)
+      p "message type: #{action.type}" 
       ##TODO こここの処理を後々game_master側に移す
-      if msg["actionType"] == ActionType::CLEAR then
+      case action.type
+      when ActionType::CLEAR then
         gm.clear_log
+      when ActionType::WRITE then
+        p action.color
+        ## paint logを記録
+        gm.record_log action
+        gm.broadcast_message(action)
+      when ActionType::CHAT then
+        ## message logを記録
+        ## 今は同じ場所に記録
+        gm.record_log action
+        # 答えをチャレンジしておく
+        gm.challenge_answer(ws.user_id, action.message)
+        gm.broadcast_message(action)
       else
-        p msg["color"]
-        gm.record_log event.data
-        gm.broadcast_message(msg)
       end
     end
 
@@ -61,8 +72,7 @@ App = lambda do |env|
       p "master call"
       p path
       act = OekakiAction.new(ActionType::CLEAR)
-      puts act.to_msg
-      gm.broadcast_message(act.to_msg)
+      gm.clear_log()
     when /\/master\/call\/(.*)/ 
       p "master call"
       p path
