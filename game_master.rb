@@ -20,6 +20,14 @@ class GameEvent
   end
 end
 
+
+$test_problem_set =[
+  OekakiProblem.new("にんじん",["にんじん","にんじーん"]),
+  OekakiProblem.new("りんご",["りんご","ringo"]),
+  OekakiProblem.new("ほうれんそう",["ほうれんそう","ほっほっほほうれんそう"])
+]
+
+
 class GameMaster 
   attr_accessor :connection_pool, :paint_log
   attr_accessor :isPlaying, :nowCorrectAnswer 
@@ -31,6 +39,7 @@ class GameMaster
     @isPlaying = false
     @event_queue = Queue.new
   end
+  ## コネクション管理
   def add_connection(user_id, ws)
     @connection_pool[user_id] = ws
   end
@@ -40,6 +49,7 @@ class GameMaster
   def has_user_ids
     return @connection_pool.keys()
   end
+  # OekakiAction を送信
   def send_action(user_id, act)
     ws = @connection_pool[user_id]
     ws.send(act.to_msg)
@@ -49,19 +59,19 @@ class GameMaster
       self.send_action(user_id,act)
     end
   end
-  ## OekakiActionクラスの配列
-  def record_log(action) 
-    @paint_log << action
-  end
-  def broadcast_message(action)
+  def send_action_broadcast(action)
     self.has_user_ids.each do |user_id|
       self.send_action(user_id,action)
     end
   end
+  ## OekakiActionクラスの配列
+  def record_log(action) 
+    @paint_log << action
+  end
   def clear_log()
     @paint_log = []
     act = OekakiAction.new(ActionType::CLEAR)
-    self.broadcast_message(act)
+    self.send_action_broadcast(act)
   end
   def send_log(user_id)
     @paint_log.each do |act|
@@ -79,6 +89,11 @@ class GameMaster
     act.message = str
     send_action_to_group(user_id_group,act)
   end
+  def announce_to_broadcast(str)
+    act = OekakiAction.new(ActionType::ANNOUNCE)
+    act.message = str
+    send_action_broadcast(act)
+  end
   ## user_id が answerと答えた
   def challenge_answer(user_id,answer)
     @event_queue.push(GameEvent.new(GameEventType::CHALLENGE,user_id,answer))
@@ -90,43 +105,50 @@ class GameMaster
       Thread.pass
       p "new thread start!!!"
       clear_log()
-      act = OekakiAction.new(ActionType::ANNOUNCE)
-      act.message = "ゲームが始まるよ！！！"
-      broadcast_message(act)
-      play( OekakiProblem.new("にんじん",["にんじん","にんじーん"]))
+      announce_to_broadcast("ゲームがはじまるよ")
+      $test_problem_set.each do|quiz|
+        play(quiz)
+        sleep(3)
+      end
+      announce_to_broadcast("ゲーム終了")
       @isPlaying = false
     end
   end 
 
   def play(quiz)
+    # 画面消去
+    clear_log()
     ## 出題者決める
-    act = OekakiAction.new(ActionType::CLEAR)
-    broadcast_message(act)
     drawer = @connection_pool.keys.sample
     other = @connection_pool.keys - [drawer]
     announce_to_user(drawer,"あなたは描き手です！")
     announce_to_user_group(other,"あなたは回答者です！")
     sleep(1)
+    # 問題通知
     announce_to_user(drawer,quiz.problem)
-
+    announce_to_user_group(other,"何が描かれたか ひらがな で回答してね")
     # 時間計測スタート
-    time_thread = timer(20)
+    @event_queue.clear
+    time_thread = timer(3)
     loop do
       event = @event_queue.pop
       case event.type
       when GameEventType::CHALLENGE then
-        puts "答えられた #{event.info}" 
+        # userからの回答
         if quiz.check_answer(event.info) then
           # 正解処理
-          announce_to_user_group(other,"正解！！！！")
+          announce_to_user_group(other,"正解！ 答えは「#{quiz.problem}」でした")
           time_thread.kill 
         end
       when GameEventType::TIMEUP then
+        # 時間切れ
+        announce_to_broadcast("時間切れ・・・正解は「#{quiz.problem}」でした")
         puts "時間切れでございます" 
         # loopから抜ける 
         break
       else
-        p "unknown data !!!!!  "
+        p "unknown data error"
+        p event
       end
     end
   end
@@ -134,7 +156,7 @@ class GameMaster
   # sec_limit 秒まつ
   # threadオブジェクトを返す
   # 別イベント発生時にそれを停止
-  def timer( sec_limit )
+  def timer(sec_limit)
     return Thread.new do
       sec_limit.times.reverse_each do |i|
         sleep(1) 
@@ -142,7 +164,6 @@ class GameMaster
       end
       ## 時間切れ処理
       announce_to_user_group(self.has_user_ids,"Time Up !!!")
-      ## 雑に文字列
       @event_queue.push GameEvent.new(GameEventType::TIMEUP,"GameMaster","")
     end
   end

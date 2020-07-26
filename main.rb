@@ -41,14 +41,14 @@ App = lambda do |env|
         p action.color
         ## paint logを記録
         gm.record_log action
-        gm.broadcast_message(action)
+        gm.send_action_broadcast(action)
       when ActionType::CHAT then
         ## message logを記録
         ## 今は同じ場所に記録
         gm.record_log action
         # 答えをチャレンジしておく
         gm.challenge_answer(ws.user_id, action.message)
-        gm.broadcast_message(action)
+        gm.send_action_broadcast(action)
       else
       end
     end
@@ -68,18 +68,6 @@ App = lambda do |env|
     p env["REQUEST_PATH"]
     path = env["REQUEST_PATH"]
     case path
-    when /\/master\/clear/ 
-      p "master call"
-      p path
-      act = OekakiAction.new(ActionType::CLEAR)
-      gm.clear_log()
-    when /\/master\/call\/(.*)/ 
-      p "master call"
-      p path
-      act = OekakiAction.new(ActionType::ANNOUNCE)
-      act.message = "#{$1}"
-      puts act.to_msg
-      gm.broadcast_message(act.to_msg)
     when /\/master\/start/
       gm.game_start()
     else
