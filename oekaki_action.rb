@@ -13,9 +13,10 @@ end
 
 
 class OekakiAction 
-  attr_accessor :type, :line, :line_width, :color, :message
+  attr_accessor :type, :line, :line_width, :color, :user_name, :message
   def initialize(type)
       @type = type
+      @user_name = ""
       @line = []
       @line_width = 1
       @color = {:red => 0, :green => 0, :blue => 0}
@@ -26,6 +27,7 @@ class OekakiAction
     act.line =  json["line"]
     act.line_width = json["lineWidth"]
     act.color = json["color"]
+    act.user_name = json["userName"]
     act.message = json["message"]
     return act
   end
@@ -35,6 +37,7 @@ class OekakiAction
       "line" => @line,
       "lineWidth" => @line_width,
       "color" => @color,
+      "userName" => @user_name,
       "message" => @message
     }
     return JSON.dump(tmp)

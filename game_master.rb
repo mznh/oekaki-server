@@ -49,6 +49,14 @@ class GameMaster
   def has_user_ids
     return @connection_pool.keys()
   end
+  ## ユーザー管理
+  def set_user_name(user_id,user_name)
+    @connection_pool[user_id].user_name = user_name
+  end
+  def id_to_name(user_id)
+    return @connection_pool[user_id].user_name
+  end
+
   # OekakiAction を送信
   def send_action(user_id, act)
     ws = @connection_pool[user_id]

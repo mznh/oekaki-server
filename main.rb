@@ -18,12 +18,15 @@ App = lambda do |env|
   if Faye::WebSocket.websocket?(env)
     ws = Faye::WebSocket.new(env, nil, {ping: 15})
     ws.on :open do |event|
+      ## 新規接続処理
       p "connect!"
       new_user_id = SecureRandom.hex(8)
       p "generate new id: #{new_user_id}"
       # set id
       ws.user_id = new_user_id  
       gm.add_connection(new_user_id, ws)
+      # set user name
+      gm.set_user_name(new_user_id,"user_#{new_user_id.to_s[0..3]}")
       p "send log: "
       gm.send_log(new_user_id)
     end
@@ -47,6 +50,7 @@ App = lambda do |env|
         ## 今は同じ場所に記録
         gm.record_log action
         # 答えをチャレンジしておく
+        action.user_name = gm.id_to_name(ws.user_id)
         gm.challenge_answer(ws.user_id, action.message)
         gm.send_action_broadcast(action)
       else
