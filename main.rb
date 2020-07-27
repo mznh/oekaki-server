@@ -39,18 +39,21 @@ App = lambda do |env|
       ##TODO こここの処理を後々game_master側に移す
       case action.type
       when ActionType::CLEAR then
-        gm.clear_log
+        gm.clear_paint_log
       when ActionType::WRITE then
         p action.color
         ## paint logを記録
-        gm.record_log action
+        gm.record_paint_log action
         gm.send_action_broadcast(action)
       when ActionType::CHAT then
+        # 本来は前もってついてるユーザー名前情報
+        # 仮実装
+        action.user_name = gm.id_to_name(ws.user_id)
+
         ## message logを記録
         ## 今は同じ場所に記録
-        gm.record_log action
+        gm.record_chat_log action
         # 答えをチャレンジしておく
-        action.user_name = gm.id_to_name(ws.user_id)
         gm.challenge_answer(ws.user_id, action.message)
         gm.send_action_broadcast(action)
       else

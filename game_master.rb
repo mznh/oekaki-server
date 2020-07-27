@@ -36,6 +36,7 @@ class GameMaster
     @connection_pool = {}
     ## log はJSONオブジェクトの配列
     @paint_log = []
+    @chat_log = []
     @isPlaying = false
     @event_queue = Queue.new
   end
@@ -73,16 +74,24 @@ class GameMaster
     end
   end
   ## OekakiActionクラスの配列
-  def record_log(action) 
+  # ペイントログ
+  def record_paint_log(action) 
     @paint_log << action
   end
-  def clear_log()
+  def clear_paint_log()
     @paint_log = []
     act = OekakiAction.new(ActionType::CLEAR)
     self.send_action_broadcast(act)
   end
+  # チャットログ
+  def record_chat_log(action) 
+    @chat_log << action
+  end
   def send_log(user_id)
     @paint_log.each do |act|
+      self.send_action(user_id,act)
+    end
+    @chat_log.each do |act|
       self.send_action(user_id,act)
     end
   end
