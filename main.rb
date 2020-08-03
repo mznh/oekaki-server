@@ -8,7 +8,7 @@ require 'securerandom'
 require "./game_master"
 
 class Faye::WebSocket
-  attr_accessor :user_id, :user_name
+  attr_accessor :user_id, :user_name,:user_seat
 end
 
 
@@ -56,6 +56,9 @@ App = lambda do |env|
         # 答えをチャレンジしておく
         gm.challenge_answer(ws.user_id, action.message)
         gm.send_action_broadcast(action)
+      when ActionType::OPERATION then
+        act = gm.generate_action_for_send_user_list
+        gm.send_action_broadcast(act)
       else
       end
     end

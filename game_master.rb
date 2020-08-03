@@ -1,8 +1,6 @@
 
 
-require "./oekaki_action"
-require 'json'
-require 'thread'
+require "./basic_master"
 
 
 
@@ -28,88 +26,10 @@ $test_problem_set =[
 ]
 
 
-class GameMaster 
-  attr_accessor :connection_pool, :paint_log
-  attr_accessor :isPlaying, :nowCorrectAnswer 
-
-  def initialize()
-    @connection_pool = {}
-    ## log はJSONオブジェクトの配列
-    @paint_log = []
-    @chat_log = []
-    @isPlaying = false
-    @event_queue = Queue.new
-  end
-  ## コネクション管理
-  def add_connection(user_id, ws)
-    @connection_pool[user_id] = ws
-  end
-  def delete_connection(user_id)
-    @connection_pool.delete(user_id)
-  end
-  def has_user_ids
-    return @connection_pool.keys()
-  end
-  ## ユーザー管理
-  def set_user_name(user_id,user_name)
-    @connection_pool[user_id].user_name = user_name
-  end
-  def id_to_name(user_id)
-    return @connection_pool[user_id].user_name
-  end
-
-  # OekakiAction を送信
-  def send_action(user_id, act)
-    ws = @connection_pool[user_id]
-    ws.send(act.to_msg)
-  end
-  def send_action_to_group(user_id_group, act)
-    user_id_group.each do |user_id|
-      self.send_action(user_id,act)
-    end
-  end
-  def send_action_broadcast(action)
-    self.has_user_ids.each do |user_id|
-      self.send_action(user_id,action)
-    end
-  end
-  ## OekakiActionクラスの配列
-  # ペイントログ
-  def record_paint_log(action) 
-    @paint_log << action
-  end
-  def clear_paint_log()
-    @paint_log = []
-    act = OekakiAction.new(ActionType::CLEAR)
-    self.send_action_broadcast(act)
-  end
-  # チャットログ
-  def record_chat_log(action) 
-    @chat_log << action
-  end
-  def send_log(user_id)
-    @paint_log.each do |act|
-      self.send_action(user_id,act)
-    end
-    @chat_log.each do |act|
-      self.send_action(user_id,act)
-    end
-  end
-
-  def announce_to_user(user_id, str) 
-    act = OekakiAction.new(ActionType::ANNOUNCE)
-    act.message = str
-    send_action(user_id,act)
-  end
-  def announce_to_user_group(user_id_group, str) 
-    act = OekakiAction.new(ActionType::ANNOUNCE)
-    act.message = str
-    send_action_to_group(user_id_group,act)
-  end
-  def announce_to_broadcast(str)
-    act = OekakiAction.new(ActionType::ANNOUNCE)
-    act.message = str
-    send_action_broadcast(act)
+class GameMaster < BasicMaster
+## ゲーム進行用
+  def initialize
+    super()
   end
   ## user_id が answerと答えた
   def challenge_answer(user_id,answer)
@@ -121,7 +41,7 @@ class GameMaster
       @isPlaying = true
       Thread.pass
       p "new thread start!!!"
-      clear_log()
+      clear_paint_log()
       announce_to_broadcast("ゲームがはじまるよ")
       $test_problem_set.each do|quiz|
         play(quiz)
@@ -134,7 +54,7 @@ class GameMaster
 
   def play(quiz)
     # 画面消去
-    clear_log()
+    clear_paint_log()
     ## 出題者決める
     drawer = @connection_pool.keys.sample
     other = @connection_pool.keys - [drawer]
