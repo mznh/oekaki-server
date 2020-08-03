@@ -6,6 +6,6 @@ oekaki-cloneのサーバーサイド
 ```
 # install
 bundle install --path vendor/bundle
-# do it
+# execute
 bundle exec thin start -R config.ru
 ```

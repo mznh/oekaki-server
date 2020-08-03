@@ -160,7 +160,7 @@ class GameMaster
       when GameEventType::TIMEUP then
         # 時間切れ
         announce_to_broadcast("時間切れ・・・正解は「#{quiz.problem}」でした")
-        puts "時間切れでございます" 
+        p "time up"
         # loopから抜ける 
         break
       else

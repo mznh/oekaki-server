@@ -76,7 +76,9 @@ App = lambda do |env|
     path = env["REQUEST_PATH"]
     case path
     when /\/master\/start/
-      gm.game_start()
+      if not gm.isPlaying then
+        gm.game_start()
+      end
     else
       p "else path: (#{path})"
     end
