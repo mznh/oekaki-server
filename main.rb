@@ -66,9 +66,11 @@ App = lambda do |env|
     end
 
     ws.on :close do |event|
+      # 切断処理
       #p [:close, event.code, event.reason]
       p "disconnect #{ws.user_id}"
       gm.connection_pool.delete(ws.user_id)
+      gm.broadcast_player_status
       ws = nil
     end
 
