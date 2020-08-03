@@ -8,7 +8,7 @@ require 'securerandom'
 require "./game_master"
 
 class Faye::WebSocket
-  attr_accessor :user_id, :user_name,:user_seat
+  attr_accessor :user_id, :user_name,:user_seat,:score
 end
 
 
@@ -27,6 +27,8 @@ App = lambda do |env|
       gm.add_connection(new_user_id, ws)
       # set user name
       gm.set_user_name(new_user_id,"user_#{new_user_id.to_s[0..3]}")
+      # initialize score
+
       p "send log: "
       gm.send_log(new_user_id)
     end

@@ -19,6 +19,7 @@ class BasicMaster
   ## コネクション管理
   def add_connection(user_id, ws)
     @connection_pool[user_id] = ws
+    @connection_pool[user_id].score = 0
   end
   def delete_connection(user_id)
     @connection_pool.delete(user_id)
@@ -35,7 +36,7 @@ class BasicMaster
         :userId => u.user_id,
         :userName => u.user_name,
         :userSeat => u.user_seat,
-        :score => 100
+        :score => u.score
       }
     }
     answer.message = res.to_json
@@ -48,6 +49,10 @@ class BasicMaster
   end
   def id_to_name(user_id)
     return @connection_pool[user_id].user_name
+  end
+  ## スコア変動
+  def change_user_score(user_id,score_diff) 
+    @connection_pool[user_id].score += score_diff
   end
 
   # OekakiAction を送信
@@ -65,31 +70,6 @@ class BasicMaster
       self.send_action(user_id,action)
     end
   end
-  ## 各種ログは OekakiActionの配列
-  # ペイントログ
-  def record_paint_log(action) 
-    @paint_log << action
-  end
-  #全消し処理
-  def clear_paint_log()
-    @paint_log = []
-    act = OekakiAction.new(ActionType::CLEAR)
-    self.send_action_broadcast(act)
-  end
-  # チャットログ
-  def record_chat_log(action) 
-    @chat_log << action
-  end
-  # 途中参加者へすべてのログを送信
-  def send_log(user_id)
-    @paint_log.each do |act|
-      self.send_action(user_id,act)
-    end
-    @chat_log.each do |act|
-      self.send_action(user_id,act)
-    end
-  end
-  
 # アナウンス用メソッド
   def announce_to_user(user_id, str) 
     act = OekakiAction.new(ActionType::ANNOUNCE)

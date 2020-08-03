@@ -27,13 +27,45 @@ $test_problem_set =[
 
 
 class GameMaster < BasicMaster
-## ゲーム進行用
   def initialize
     super()
   end
+
+  ## 各種ログは OekakiActionの配列
+  # ペイントログ
+  def record_paint_log(action) 
+    @paint_log << action
+  end
+  # 全消し処理
+  def clear_paint_log()
+    @paint_log = []
+    act = OekakiAction.new(ActionType::CLEAR)
+    self.send_action_broadcast(act)
+  end
+  # チャットログ
+  def record_chat_log(action) 
+    @chat_log << action
+  end
+  # 途中参加者へすべてのログを送信
+  def send_log(user_id)
+    @paint_log.each do |act|
+      self.send_action(user_id,act)
+    end
+    @chat_log.each do |act|
+      self.send_action(user_id,act)
+    end
+  end
+  
   ## user_id が answerと答えた
   def challenge_answer(user_id,answer)
     @event_queue.push(GameEvent.new(GameEventType::CHALLENGE,user_id,answer))
+  end
+
+
+  ## ユーザーのスコア変動等を通知　
+  def broadcast_player_status()
+    act = generate_action_for_send_user_list
+    send_action_broadcast(act)
   end
 
   def game_start()
@@ -66,7 +98,7 @@ class GameMaster < BasicMaster
     announce_to_user_group(other,"何が描かれたか ひらがな で回答してね")
     # 時間計測スタート
     @event_queue.clear
-    time_thread = timer(3)
+    time_thread = timer(30)
     loop do
       event = @event_queue.pop
       case event.type
@@ -75,7 +107,12 @@ class GameMaster < BasicMaster
         if quiz.check_answer(event.info) then
           # 正解処理
           announce_to_user_group(other,"正解！ 答えは「#{quiz.problem}」でした")
+          # 得点加算
+          change_user_score(event.user_id, 100)
+          # 得点通知
+          broadcast_player_status
           time_thread.kill 
+          break
         end
       when GameEventType::TIMEUP then
         # 時間切れ
@@ -90,9 +127,9 @@ class GameMaster < BasicMaster
     end
   end
   
-  # sec_limit 秒まつ
+  # sec_limit 秒カウントダウンする
   # threadオブジェクトを返す
-  # 別イベント発生時にそれを停止
+  # 別イベント発生時にそれを停止させる
   def timer(sec_limit)
     return Thread.new do
       sec_limit.times.reverse_each do |i|
